@@ -1,0 +1,27 @@
+# Ignore all files and directories starting with a dot
+.*
+
+# Ignore node_modules directory
+node_modules/
+
+# Ignore build artifacts
+dist/
+build/
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+
+# Ignore editor-specific files
+.vscode/
+.idea/
+
+# Ignore Docker-related files
+Dockerfile
+docker-compose.yml
+
+# Ignore sensitive files
+secrets.txt
+credentials.json
