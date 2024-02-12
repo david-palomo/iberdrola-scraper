@@ -37,12 +37,12 @@ def get_consumption_data(driver, date: str, login_timeout=20) -> dict:
     date = "-".join(reversed(date.split("-")))
     driver.get(f"{url}/rest/consumoNew/obtenerDatosConsumoDH/{date}/{date}/dias/USU/")
 
-    raw_data = driver.find_element(By.TAG_NAME, "body").text
-    logging.info(f"Got raw data: {raw_data!r}")
+    body = driver.find_element(By.TAG_NAME, "body").text
+    logging.info(f"Got raw data: {body!r}")
 
-    assert "error" not in raw_data, f"Error response: {raw_data!r}"
+    assert all(s not in body for s in ["error", "WU1"]), f"Error response: {body!r}"
 
-    data = json.loads(raw_data)[0]
+    data = json.loads(body)[0]
 
     assert isinstance(data, dict) and "total" in data, f"Got invalid data: {data!r}"
     assert data["total"] is not None, f"Data for {date} not available!"
