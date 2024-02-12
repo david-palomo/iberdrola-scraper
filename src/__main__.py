@@ -29,7 +29,7 @@ def main():
                 logging.warning(f"{e}. Retrying...")
 
         logging.info(data)
-        total = int(data["total"])
+        total = int(data["total"]) / 1000
 
         if total > args.threshold:
             message = f"Total for {args.date}: {total} kWh"
