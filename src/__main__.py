@@ -20,13 +20,16 @@ def main():
     try:
         logging.info(f"Getting consumption data for {args.date}...")
 
-        for _ in range(1 + args.retries):
+        for i in range(1 + args.retries):
             try:
                 data = get_consumption_data(driver, args.date)
                 break
             except Exception as e:
-                logging.warning(f"{e}. Retrying in 1 minute...")
-                time.sleep(60)
+                if i == args.retries:
+                    raise
+                else:
+                    logging.warning(f"{e}. Retrying in 1 minute...")
+                    time.sleep(60)
 
         logging.info(data)
         total = int(data["total"]) / 1000
