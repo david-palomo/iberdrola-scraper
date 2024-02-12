@@ -1,5 +1,6 @@
 import logging
 import requests
+import time
 import traceback
 
 from src.config import parse_args
@@ -23,7 +24,8 @@ def main():
             try:
                 data = get_consumption_data(driver, args.date)
                 break
-            except TimeoutError as e:
+            except Exception as e:
+                time.sleep(60)
                 logging.warning(f"{e}. Retrying...")
 
         logging.info(data)
