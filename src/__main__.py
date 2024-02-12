@@ -1,7 +1,8 @@
 import logging
 import requests
-import time
 import traceback
+
+from time import sleep
 
 from src.config import parse_args
 from src.scraping import create_driver, get_consumption_data
@@ -29,7 +30,7 @@ def main():
                     raise
                 else:
                     logging.warning(f"{e}. Retrying in 1 minute...")
-                    time.sleep(60)
+                    sleep(60)
 
         logging.info(data)
         total = int(data["total"]) / 1000

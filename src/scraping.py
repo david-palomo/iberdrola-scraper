@@ -6,6 +6,7 @@ from selenium.webdriver import Remote, Chrome, ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+from time import sleep
 
 
 def create_driver(local=False, remote_url: str = "http://localhost:4444"):
@@ -30,6 +31,7 @@ def get_consumption_data(driver, date: str, login_timeout=20) -> dict:
     logging.info("Form submitted! Waiting for login to complete...")
     try:
         WebDriverWait(driver, login_timeout).until(EC.url_contains("dashboard"))
+        sleep(5)
     except TimeoutException:
         raise TimeoutError("Login timeout exceeded!")
 
