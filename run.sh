@@ -1,2 +1,2 @@
 #!/bin/bash
-docker run --network host --env-file .env iberdrola
+docker run --network host --env-file .env iberdrola-scraper
