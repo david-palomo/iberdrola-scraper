@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 selenium = "*"
 requests = "*"
+typed-argument-parser = "*"
 
 [dev-packages]
 

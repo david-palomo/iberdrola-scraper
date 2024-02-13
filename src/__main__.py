@@ -1,50 +1,50 @@
 import logging
-import requests
 import traceback
+import time
 
-from time import sleep
-
-from src.config import parse_args
-from src.scraping import create_driver, get_consumption_data
-
-
-def notify(ntfy_url, title, message, tags="") -> requests.Response:
-    requests.post(ntfy_url, message, headers={"Title": title, "Tags": tags})
+from src.config import Config
+from src.scraping import get_consumption_data
+from src.notify import ntfy
 
 
 def main():
-    args = parse_args()
-    logging.basicConfig(level=args.log_level, format=args.log_format)
+    args = Config().parse_args()
 
-    logging.info("Starting Selenium WebDriver...")
-    driver = create_driver(args.local_driver, args.remote_driver_url)
+    log_format = "%(asctime)s - %(levelname)s - %(message)s"
+    logging.basicConfig(level=args.log_level, format=log_format)
+    logging.info(f"Getting consumption data for {args.date}...")
+
+    args.warn_args()
+
     try:
-        logging.info(f"Getting consumption data for {args.date}...")
-
         for i in range(1 + args.retries):
             try:
-                data = get_consumption_data(driver, args.date)
+                data = get_consumption_data(args.date, args.selenium_driver_url)
+                logging.info(data)
+
+                total = int(data["total"]) / 1000
+                msg = f"{args.date}: {total} kWh"
+
+                if total > args.alert_threshold:
+                    resp = ntfy(args.ntfy_url, args.alert_title, msg, 5, args.alert_tag)
+                else:
+                    resp = ntfy(args.ntfy_url, args.info_title, msg, 3, args.info_tag)
+
+                logging.info(f"NTFY response: {resp.status_code}")
                 break
+
             except Exception as e:
                 if i == args.retries:
                     raise
-                else:
-                    logging.warning(f"{e}. Retrying in 1 minute...")
-                    sleep(60)
 
-        logging.info(data)
-        total = int(data["total"]) / 1000
-
-        if total > args.threshold:
-            message = f"Total for {args.date}: {total} kWh"
-            notify(args.ntfy_url, "i-DE Consumption Alert", message, "warning")
+                logging.error(f"{e}. Will retry in {args.retry_delay}s...")
+                time.sleep(args.retry_delay)
 
     except Exception as e:
         logging.error(traceback.format_exc())
-        notify(args.ntfy_url, "i-DE Script Failed", f"{e!r}", "rotating_light")
 
-    finally:
-        driver.quit()
+        resp = ntfy(args.ntfy_url, args.error_title, f"{e!r}", 3, args.error_tag)
+        logging.info(f"Notification sent: {resp.status_code}")
 
 
 if __name__ == "__main__":

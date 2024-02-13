@@ -1,90 +1,41 @@
-import argparse
-from datetime import datetime, timedelta
 import logging
 import os
-import re
+from datetime import datetime, timedelta
+from tap import Tap
 
 
-def valid_date(s: str) -> str:
-    if not re.match(r"\d{4}-\d{2}-\d{2}", s):
-        raise ValueError("Not a valid date: {s!r}")
-    return s
+class Config(Tap):
+    "Get daily consumption data from i-DE and send a notification."
 
+    username: str = os.getenv("USERNAME", "")  # i-DE username (email)
+    password: str = os.getenv("PASSWORD", "")  # i-DE password
+    ntfy_url: str = os.getenv("NTFY_URL", "")  # e.g. https://ntfy.sh/mytopic
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Notifies if consumption for a given date exceeds a threshold.",
-        epilog="Requires Selenium Grid or Chrome WebDriver installed.",
-    )
+    date: str = os.getenv("DATE", str(datetime.now().date() - timedelta(days=1)))
+    selenium_driver_url: str = os.getenv("SELENIUM_DRIVER_URL", "http://localhost:4444")
+    retries: int = int(os.getenv("RETRIES", 2))
+    info_title: str = os.getenv("INFO_TITLE", "i-DE: Consumption info")
+    info_tag: str = os.getenv("INFO_TAG", "green_circle")
+    alert_threshold: float = float(os.getenv("ALERT_THRESHOLD", "inf"))  # kWh
+    alert_title: str = os.getenv("ALERT_TITLE", "i-DE: Consumption alert!")
+    alert_tag: str = os.getenv("ALERT_TAG", "red_circle")
+    error_title: str = os.getenv("ERROR_TITLE", "i-DE: Error running script!")
+    error_tag: str = os.getenv("ERROR_TAG", "warning")
+    retry_delay: int = int(os.getenv("RETRY_DELAY", 60))  # seconds
+    log_level: str = os.getenv("LOG_LEVEL", "INFO")
 
-    parser.add_argument(
-        "-u",
-        "--username",
-        default=os.getenv("USERNAME"),
-        help="User (email) for i-DE. Required!",
-    )
-    parser.add_argument(
-        "-p",
-        "--password",
-        default=os.getenv("PASSWORD"),
-        help="Password for i-DE. Required!",
-    )
-    parser.add_argument(
-        "-d",
-        "--date",
-        default=os.getenv(
-            "DATE", (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-        ),
-        type=valid_date,
-        help="Date in YYYY-MM-DD format",
-    )
-    parser.add_argument(
-        "-t",
-        "--threshold",
-        default=float(os.getenv("THRESHOLD", "0.0")),
-        type=float,
-        help="Threshold in kWh",
-    )
-    parser.add_argument(
-        "-n",
-        "--ntfy-url",
-        default=os.getenv("NTFY_URL"),
-        help="NTFY Topic URL (e.g. https://ntfy.sh/mytopic)",
-    )
-    parser.add_argument(
-        "-r",
-        "--retries",
-        default=int(os.getenv("RETRIES", 2)),
-        type=int,
-        help="Number of retries in case of timeout. Default: 2",
-    )
-    parser.add_argument(
-        "--local-driver",
-        action="store_true",
-        help="Use local Chrome WebDriver instead of Selenium Grid",
-    )
-    parser.add_argument(
-        "--remote-driver-url",
-        default=os.getenv("REMOTE_DRIVER_URL", "http://localhost:4444"),
-        help="Selenium Grid URL. Default: http://localhost:4444",
-    )
-    parser.add_argument(
-        "--log-level",
-        default=os.getenv("LOG_LEVEL", "INFO"),
-        choices=("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"),
-    )
-    parser.add_argument(
-        "--log-format",
-        default=os.getenv("LOG_FORMAT", "%(asctime)s - %(levelname)s - %(message)s"),
-        help="Python logging format",
-    )
+    def process_args(self):
+        if not self.username or not self.password:
+            exit("Username and password are required.")
 
-    args = parser.parse_args()
+        try:
+            datetime.strptime(self.date, "%Y-%m-%d")
+        except ValueError:
+            exit("Incorrect date format, should be YYYY-MM-DD.")
 
-    if not args.username or not args.password:
-        parser.error("Username and password are required.")
+    def warn_args(self):
+        if not self.ntfy_url:
+            logging.warn("No NTFY URL provided. Notifications will be disabled.")
 
-    if not args.ntfy_url:
-        logging.warning("No NTFY URL provided. Notifications will be disabled.")
-
-    return args
+        if self.alert_threshold == float("inf"):
+            logging.info("No alert threshold provided. All notifications will be INFO.")

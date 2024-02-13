@@ -1,52 +1,61 @@
 import json
 import logging
 import os
+import time
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from selenium.webdriver import Remote, Chrome, ChromeOptions
+from selenium.webdriver import Remote, ChromeOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
-from time import sleep
 
 
-def create_driver(local=False, remote_url: str = "http://localhost:4444"):
-    return Chrome() if local else Remote(remote_url, options=ChromeOptions())
+def start_remote_driver(driver_url) -> Remote:
+    logging.info("Starting Remote WebDriver...")
+    try:
+        return Remote(driver_url, options=ChromeOptions())
+    except Exception as e:
+        raise ConnectionError(f"Can't connect to Selenium Grid at {driver_url}: {e!r}")
 
 
-def get_consumption_data(driver, date: str, login_timeout=20) -> dict:
+def get_consumption_data(date: str, driver_url="http://localhost:4444") -> dict:
     url = "https://www.i-de.es/consumidores"
-
-    logging.info("Getting the login page...")
-    driver.get(f"{url}/web/guest/login")
+    driver = start_remote_driver(driver_url)
 
     try:
-        driver.find_element(By.ID, "onetrust-reject-all-handler").click()
-    except NoSuchElementException:
-        pass
+        logging.info("Getting the login page...")
+        driver.get(f"{url}/web/guest/login")
 
-    driver.find_element(By.ID, "mat-input-0").send_keys(os.getenv("USERNAME"))
-    driver.find_element(By.ID, "mat-input-1").send_keys(os.getenv("PASSWORD"))
-    driver.find_element(By.XPATH, '//div[@class="enter-button"]//button').click()
+        try:
+            driver.find_element(By.ID, "onetrust-accept-btn-handler").click()
+        except NoSuchElementException:
+            logging.info("No cookies banner found, continuing...")
 
-    logging.info("Form submitted! Waiting for login to complete...")
-    try:
-        WebDriverWait(driver, login_timeout).until(EC.url_contains("dashboard"))
-        sleep(5)
-    except TimeoutException:
-        raise TimeoutError("Login timeout exceeded!")
+        driver.find_element(By.ID, "mat-input-0").send_keys(os.getenv("USERNAME"))
+        driver.find_element(By.ID, "mat-input-1").send_keys(os.getenv("PASSWORD"))
+        driver.find_element(By.XPATH, '//div[@class="enter-button"]//button').click()
 
-    logging.info("Getting consumption data...")
-    date = "-".join(reversed(date.split("-")))
-    driver.get(f"{url}/rest/consumoNew/obtenerDatosConsumoDH/{date}/{date}/dias/USU/")
+        logging.info("Form submitted! Waiting for login to complete...")
+        try:
+            WebDriverWait(driver, 25).until(EC.url_contains("dashboard"))
+            time.sleep(5)
+        except TimeoutException:
+            raise TimeoutError("Login timeout exceeded!")
 
-    body = driver.find_element(By.TAG_NAME, "body").text
-    logging.info(f"Got raw data: {body!r}")
+        logging.info("Getting consumption data...")
+        d = "-".join(reversed(date.split("-")))
+        driver.get(f"{url}/rest/consumoNew/obtenerDatosConsumoDH/{d}/{d}/dias/USU/")
 
-    assert all(s not in body for s in ["error", "WU1"]), f"Error response: {body!r}"
+        body = driver.find_element(By.TAG_NAME, "body").text
+        logging.info(f"Got raw data: {body!r}")
 
-    data = json.loads(body)[0]
+        assert all(s not in body for s in ["error", "WU1"]), f"Error response: {body!r}"
 
-    assert isinstance(data, dict) and "total" in data, f"Got invalid data: {data!r}"
-    assert data["total"] is not None, f"Data for {date} not available!"
+        data = json.loads(body)[0]
 
-    return data
+        assert isinstance(data, dict) and "total" in data, f"Got invalid data: {data!r}"
+        assert data["total"] is not None, f"Data for {date} not available!"
+
+        return data
+
+    finally:
+        driver.quit()
