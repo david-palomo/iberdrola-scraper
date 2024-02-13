@@ -14,7 +14,7 @@ def start_remote_driver(driver_url) -> Remote:
     try:
         return Remote(driver_url, options=ChromeOptions())
     except Exception as e:
-        raise ConnectionError(f"Can't connect to Selenium Grid at {driver_url}: {e!r}")
+        raise ConnectionError(f"Can't connect to Selenium at {driver_url}: {e!r}")
 
 
 def get_consumption_data(date: str, driver_url="http://localhost:4444") -> dict:
