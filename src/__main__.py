@@ -29,7 +29,7 @@ def main():
                 msg = "\n".join([f"{day}: {total} kWh" for day, total in data.items()])
 
                 if max(data.values()) >= args.alert_threshold:
-                    resp = ntfy(args.ntfy_url, args.alert_title, msg, 5, args.alert_tag)
+                    resp = ntfy(args.ntfy_url, args.alert_title, msg, 4, args.alert_tag)
                 else:
                     resp = ntfy(args.ntfy_url, args.info_title, msg, 3, args.info_tag)
 
