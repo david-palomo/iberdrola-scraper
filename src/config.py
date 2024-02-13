@@ -11,10 +11,11 @@ class Config(Tap):
     password: str = os.getenv("PASSWORD", "")  # i-DE password
     ntfy_url: str = os.getenv("NTFY_URL", "")  # e.g. https://ntfy.sh/mytopic
 
-    _default_date = str(datetime.now().date() - timedelta(days=1))
+    _default_start = str(datetime.now().date() - timedelta(days=3))
+    _default_end = str(datetime.now().date() - timedelta(days=1))
 
-    start_date: str = os.getenv("START_DATE", _default_date)
-    end_date: str = os.getenv("END_DATE", _default_date)
+    start_date: str = os.getenv("START_DATE", _default_start)
+    end_date: str = os.getenv("END_DATE", _default_end)
     alert_threshold: float = float(os.getenv("ALERT_THRESHOLD", "inf"))  # kWh
     driver_url: str = os.getenv("DRIVER_URL", "http://localhost:4444")  # Selenium URL
     retries: int = int(os.getenv("RETRIES", 3))
