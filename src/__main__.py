@@ -3,8 +3,9 @@ import traceback
 import time
 
 from src.config import Config
-from src.scraping import get_consumption_data
 from src.notify import ntfy
+from src.scraping import get_consumption
+from src.utils import get_dates_between
 
 
 def main():
@@ -12,20 +13,22 @@ def main():
 
     log_format = "%(asctime)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=args.log_level, format=log_format)
-    logging.info(f"Getting consumption data for {args.date}...")
+    logging.info(f"Requested dates {args.start_date} - {args.end_date}")
 
     args.warn_args()
 
     try:
         for i in range(1 + args.retries):
             try:
-                data = get_consumption_data(args.date, args.selenium_driver_url)
+                data = get_consumption(args.start_date, args.end_date, args.driver_url)
                 logging.info(data)
 
-                total = int(data["total"]) / 1000
-                msg = f"{args.date}: {total} kWh"
+                dates = get_dates_between(args.start_date, args.end_date)
+                data = dict(zip(dates, [int(v / 1000) for v in data["valores"]]))
 
-                if total > args.alert_threshold:
+                msg = "\n".join([f"{day}: {total} kWh" for day, total in data.items()])
+
+                if max(data.values()) >= args.alert_threshold:
                     resp = ntfy(args.ntfy_url, args.alert_title, msg, 5, args.alert_tag)
                 else:
                     resp = ntfy(args.ntfy_url, args.info_title, msg, 3, args.info_tag)

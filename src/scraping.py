@@ -17,7 +17,9 @@ def start_remote_driver(driver_url) -> Remote:
         raise ConnectionError(f"Can't connect to Selenium at {driver_url}: {e!r}")
 
 
-def get_consumption_data(date: str, driver_url="http://localhost:4444") -> dict:
+def get_consumption(
+    start_date: str, end_date: str, driver_url="http://localhost:4444"
+) -> dict:
     url = "https://www.i-de.es/consumidores"
     driver = start_remote_driver(driver_url)
 
@@ -42,8 +44,9 @@ def get_consumption_data(date: str, driver_url="http://localhost:4444") -> dict:
             raise TimeoutError("Login timeout exceeded!")
 
         logging.info("Getting consumption data...")
-        d = "-".join(reversed(date.split("-")))
-        driver.get(f"{url}/rest/consumoNew/obtenerDatosConsumoDH/{d}/{d}/dias/USU/")
+        sd = "-".join(reversed(start_date.split("-")))
+        ed = "-".join(reversed(end_date.split("-")))
+        driver.get(f"{url}/rest/consumoNew/obtenerDatosConsumoDH/{sd}/{ed}/dias/USU/")
 
         body = driver.find_element(By.TAG_NAME, "body").text
         logging.info(f"Got raw data: {body!r}")
@@ -53,7 +56,7 @@ def get_consumption_data(date: str, driver_url="http://localhost:4444") -> dict:
         data = json.loads(body)[0]
 
         assert isinstance(data, dict) and "total" in data, f"Got invalid data: {data!r}"
-        assert data["total"] is not None, f"Data for {date} not available!"
+        assert data["total"] is not None, f"Got no data for {start_date} - {end_date}"
 
         return data
 
