@@ -54,7 +54,7 @@ The available parameters that can be configured are:
 
 - `START_DATE`: The start date for the scraping period. Defaults to 'yesterday'.
 - `END_DATE`: The end date for the scraping period. Defaults to 'yesterday'.
-- `ALERT_THRESHOLD`: The alert threshold as a float. Defaults to 'inf'.
+- `ALERT_THRESHOLD`: The alert threshold as a float. Defaults to 'inf' ("infinite", meaning that all notifications will be treated as info, not as alerts).
 - `DRIVER_URL`: The URL of the Selenium Grid driver. Defaults to 'http://localhost:4444'.
 - `RETRIES`: The number of retries in case of failure. Defaults to '3'.
 - `RETRY_DELAY`: The delay between retries in seconds. Defaults to '60'.
