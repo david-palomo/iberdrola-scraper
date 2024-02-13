@@ -24,7 +24,7 @@ def main():
                 logging.info(data)
 
                 dates = get_dates_between(args.start_date, args.end_date)
-                data = dict(zip(dates, [int(v / 1000) for v in data["valores"]]))
+                data = dict(zip(dates, [v / 1000 for v in data["valores"]]))
 
                 msg = "\n".join([f"{day}: {total} kWh" for day, total in data.items()])
 
